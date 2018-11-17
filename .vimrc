@@ -16,38 +16,58 @@ highlight CursorLine cterm=NONE
 highlight CursorLineNr ctermfg=blue
 
 " keymap
-noremap <F10> :call QuickRun()<CR>
-noremap <F11> :call RunScript()<CR>
 noremap <C-z> :shell<CR>
 noremap <F2> :call Copy()<CR>
+noremap <F9> :call Compile()<CR>
+noremap <F10> :call QuickRun()<CR>
+noremap <F11> :call RunScript()<CR>
 
 function Copy()
     silent !xsel -b < %
     redraw!
 endfunction
 
-function QuickRun()
+function Compile()
     cd %:h
     w %
     " compile
     if expand('%:e') == 'hs'
         silent !ghc % -o %:r -O2 && echo 'Compiled with GHC.'
+        silent !rm %:r.hi %:r.o
     elseif expand('%:e') == 'cpp'
-        silent !g++ % -o %:r -O2 -std=gnu++17 && echo 'Compiled with G++@gnu++17.'
+        silent !g++ % -o %:r -O2 -std=gnu++17 && echo 'Compiled with G++.'
     elseif expand('%:e') == 'c'
-        silent !gcc % -o %:r -std=c99 && echo 'Compiled with GCC@c99.'
+        silent !gcc % -o %:r -O2 -std=c99 && echo 'Compiled with GCC.'
     else
         !echo 'Invalid filetype. No compiler is specified.'
         return
     endif
-    " execute or pause with error message
+    redraw!
+endfunction
+
+function QuickRun()
+    cd %:h
+    w %
     if !empty(glob('%:r'))
-        silent !while true; do ./%:r; done
-        silent !rm %:r
+        " target file exists. just run it.
+        !./%:r
     else
-        !echo './%:r: Program not found.'
+        " compile
+        if expand('%:e') == 'hs'
+            silent !ghc % -o %:r && echo 'Compiled with GHC.'
+            silent !rm %:r.hi %:r.o
+        elseif expand('%:e') == 'cpp'
+            silent !g++ % -o %:r -std=gnu++17 && echo 'Compiled with G++.'
+        elseif expand('%:e') == 'c'
+            silent !gcc % -o %:r -std=c99 && echo 'Compiled with GCC.'
+        else
+            !echo 'Invalid filetype. No compiler is specified.'
+            return
+        endif
+        " run
+        !./%:r
+        silent !rm %:r
     endif
-    " redraw due to `silent`
     redraw!
 endfunction
 
@@ -56,13 +76,10 @@ function RunScript()
     w %
     " run by extension
     if expand('%:e') == 'py'
-        silent !echo 'CPython is running...'
-        silent !while true; do python %; done
+        !echo 'CPython is running...' && python %
     else
         !echo 'Invalid filetype. No Interpreter is specified.'
     endif
-    " frush screen
-    redraw!
 endfunction
 
 " disable chinese input method (fcitx) when enter the normal mode
