@@ -16,64 +16,108 @@ highlight CursorLine cterm=NONE
 highlight CursorLineNr ctermfg=blue
 
 " keymap
+
 noremap <C-z> :shell<CR>
-noremap <F2> :call Copy()<CR>
-noremap <F9> :call Compile()<CR>
-noremap <F10> :call QuickRun()<CR>
-noremap <F11> :call RunScript()<CR>
+
+" common operations at ','
+noremap ,,w :w %<CR>
+noremap ,,q :q<CR>
+noremap ,,e :e<space>
+noremap ,,x :call Clear()<CR>
+noremap ,,c :call Copy()<CR>
+noremap ,,p :call CopyPath()<CR>
+noremap ,,t :call Template()<CR>
+
+" compile at 'c'
+noremap ,cc :call Compile()<CR>
+noremap ,cx :call QuickRun()<CR>
+noremap ,cb :call TestWith()<CR>
+noremap ,cz :call Clear()<CR>
+
+" interpret at 's'
+noremap ,sr :call RunScript()<CR>
+
+" git at 'g'
+noremap ,ga :silent !git add %<CR><C-L>
+noremap ,gs :!git status<CR>
+noremap ,gc :!git commit -m<space>
+noremap ,gp :!git pull<CR>
+noremap ,gpom :!git push origin master<CR>
+
+function Cd()
+    cd %:h
+    w %
+endfunction
+
+function Clear()
+    :call Cd()
+    silent !rm %:r
+    redraw!
+endfunction
 
 function Copy()
     silent !xsel -b < %
     redraw!
 endfunction
 
-function Compile()
-    cd %:h
-    w %
-    " compile
-    if expand('%:e') == 'hs'
-        silent !ghc % -o %:r -O2 && echo 'Compiled with GHC.'
-        silent !rm %:r.hi %:r.o
-    elseif expand('%:e') == 'cpp'
-        silent !g++ % -o %:r -O2 -std=gnu++17 && echo 'Compiled with G++.'
-    elseif expand('%:e') == 'c'
-        silent !gcc % -o %:r -O2 -std=c99 && echo 'Compiled with GCC.'
-    else
-        !echo 'Invalid filetype. No compiler is specified.'
-        return
-    endif
+function CopyPath()
+    silent !echo %:p | xsel -b
     redraw!
 endfunction
 
+function TestWith()
+    :call Cd()
+    if empty(glob('%:r'))
+        Compile()
+    endif
+    !xsel -b | ./%:r
+endfunction
+
+function Template()
+    r ~/.vim/sources/template.%:e
+    normal ggddG
+endfunction
+
+function Compile()
+    :call Cd()
+    if expand('%:e') == 'hs'
+        !ghc % -o %:r -O2 && rm %:r.hi %:r.o
+    elseif expand('%:e') == 'cpp'
+        !g++ % -o %:r -O2 -std=gnu++17
+    elseif expand('%:e') == 'c'
+        !gcc % -o %:r -O2 -std=c99
+    else
+        !echo 'Invalid filetype. No compiler is specified.'
+    endif
+endfunction
+
 function QuickRun()
-    cd %:h
-    w %
+    :call Cd()
     if !empty(glob('%:r'))
         " target file exists. just run it.
-        !./%:r
+        !echo 'Program %:r is running' && ./%:r
     else
         " compile
         if expand('%:e') == 'hs'
-            silent !ghc % -o %:r && echo 'Compiled with GHC.'
+            silent !ghc % -o %:r && echo '\nCompiled with GHC.'
             silent !rm %:r.hi %:r.o
         elseif expand('%:e') == 'cpp'
-            silent !g++ % -o %:r -std=gnu++17 && echo 'Compiled with G++.'
+            silent !g++ % -o %:r -std=gnu++17 && echo '\nCompiled with G++.'
         elseif expand('%:e') == 'c'
-            silent !gcc % -o %:r -std=c99 && echo 'Compiled with GCC.'
+            silent !gcc % -o %:r -std=c99 && echo '\nCompiled with GCC.'
         else
             !echo 'Invalid filetype. No compiler is specified.'
             return
         endif
         " run
-        !./%:r
+        !echo 'Program %:r is running' && ./%:r
         silent !rm %:r
     endif
     redraw!
 endfunction
 
 function RunScript()
-    cd %:h
-    w %
+    Cd()
     " run by extension
     if expand('%:e') == 'py'
         !echo 'CPython is running...' && python %
