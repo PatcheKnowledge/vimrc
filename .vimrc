@@ -38,11 +38,16 @@ noremap ,cz :call Clear()<CR>
 noremap ,sr :call RunScript()<CR>
 
 " git at 'g'
-noremap ,ga :silent !git add %<CR><C-L>
+noremap ,ga :silent !git add %<CR><C-l>
 noremap ,gs :!git status<CR>
 noremap ,gc :!git commit -m<space>
+noremap ,ge :silent !git config --edit<CR><C-l>
 noremap ,gp :!git pull<CR>
 noremap ,gpom :!git push origin master<CR>
+
+" competitive programming at 'c' (space)
+noremap <space>cl ggO#define LL long long<ESC><C-o>
+noremap <space>cd ggO#define debug(expr) expr<ESC><C-o>
 
 function Cd()
     cd %:h
